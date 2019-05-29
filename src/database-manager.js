@@ -1,11 +1,21 @@
 const Promise = require("bluebird");
-module.exports = (app, dataSources, models) => {
-  const parsedModels = Object.keys(models)
-    .filter(key => ["_meta", "User"].indexOf(key) === -1)
-    .map(key => ({
-      name: key,
-      dataSource: models[key].dataSource
-    }));
+
+module.exports = ({
+  app,
+  dataSources,
+  models,
+  extraResetModels = [],
+  roles
+}) => {
+  const parsedModels = [
+    ...Object.keys(models)
+      .filter(key => ["_meta", "User"].indexOf(key) === -1)
+      .map(key => ({
+        name: key,
+        dataSource: models[key].dataSource
+      })),
+    ...extraResetModels
+  ];
 
   return {
     reset
@@ -23,6 +33,10 @@ module.exports = (app, dataSources, models) => {
           }
         );
       });
-    });
+    }).then(() =>
+      roles
+        ? app.models.Role.create(roles.map(role => ({ name: role })))
+        : Promise.resolve()
+    );
   }
 };

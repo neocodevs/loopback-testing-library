@@ -8,12 +8,18 @@ const SessionManager = require("./session-manager");
 const DatabaseManager = require("./database-manager");
 
 const TestSuite = app => {
-  const databaseManager = DatabaseManager(
+  const databaseManager = DatabaseManager({
     app,
-    configFile.dataSources,
-    modelConfigFile
+    dataSources: configFile.dataSources,
+    models: modelConfigFile,
+    extraResetModels: configFile.extraResetModels,
+    roles: configFile.roles
+  });
+  const managedSession = SessionManager(
+    app,
+    configFile.userModel,
+    configFile.roles ? configFile.roles[0] : null
   );
-  const managedSession = SessionManager(app, configFile.userModel);
   const fakers = require(process.cwd() + configFile.fakersFolder);
 
   if (!app) {
@@ -41,6 +47,7 @@ const TestSuite = app => {
 
   function seed({ model, props = {}, count = 1 }) {
     const modelClass = app.models[model];
+
     if (typeof modelClass === "undefined") {
       throw new Error("The provided model does not exist");
     }
@@ -48,7 +55,18 @@ const TestSuite = app => {
     const faker = fakers[camelize(model)];
     const times = [...Array(count)];
 
-    return modelClass.create(times.map(() => faker(props)));
+    return modelClass
+      .create(times.map(() => faker(props)))
+      .then(instances =>
+        model === configFile.userModel && configFile.roles
+          ? Promise.map(instances, instance =>
+              managedSession.addRoleToUser(
+                instance.id,
+                props.role || configFile.roles[0]
+              )
+            ).then(() => instances)
+          : Promise.resolve(instances)
+      );
   }
 
   function camelize(str) {
