@@ -57,6 +57,7 @@ const TestSuite = app => {
 
     return modelClass
       .create(times.map(() => faker(props)))
+      .then(instances => instances.sort((a, b) => a.id - b.id))
       .then(instances =>
         model === configFile.userModel && configFile.roles
           ? Promise.map(instances, instance =>
