@@ -9,7 +9,10 @@ module.exports = ({
 }) => {
   const parsedModels = [
     ...Object.keys(models)
-      .filter(key => ["_meta", "User"].indexOf(key) === -1)
+      .filter(
+        key =>
+          ["_meta", "User"].indexOf(key) === -1 && models[key].create !== false
+      )
       .map(key => ({
         name: key,
         dataSource: models[key].dataSource
