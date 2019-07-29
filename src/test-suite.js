@@ -56,7 +56,7 @@ const TestSuite = app => {
     const times = [...Array(count)];
 
     return modelClass
-      .create(times.map(() => faker(props)))
+      .create(times.map(() => faker(props)), { isFromNodeJS: true })
       .then(instances => instances.sort((a, b) => a.id - b.id))
       .then(instances =>
         model === configFile.userModel && configFile.roles
