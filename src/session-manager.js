@@ -26,12 +26,20 @@ module.exports = (app, userModel, defaultRole) => {
 
   function addRoleToUser(userId, role) {
     const { Role, RoleMapping } = app.models;
-    return Role.findOne({ where: { name: role } }).then(roleInstance =>
-      RoleMapping.create({
-        principalType: RoleMapping.USER,
-        principalId: userId,
-        roleId: roleInstance.id
-      })
+
+    return RoleMapping.findOne({
+      where: { principalId: userId },
+      include: "role"
+    }).then(roleMappingInstance =>
+      !roleMappingInstance || roleMappingInstance.role().name !== role
+        ? Role.findOne({ where: { name: role } }).then(roleInstance =>
+            RoleMapping.create({
+              principalType: RoleMapping.USER,
+              principalId: userId,
+              roleId: roleInstance.id
+            })
+          )
+        : Promise.resolve()
     );
   }
 };
