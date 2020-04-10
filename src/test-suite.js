@@ -6,14 +6,15 @@ const configFile = require(`${appDirectory}/loopback-testing.json`);
 const modelConfigFile = require(`${appDirectory}/server/model-config.json`);
 const SessionManager = require("./session-manager");
 const DatabaseManager = require("./database-manager");
+const { camelize } = require("./utils");
 
-const TestSuite = app => {
+const TestSuite = (app) => {
   const databaseManager = DatabaseManager({
     app,
     dataSources: configFile.dataSources,
     models: modelConfigFile,
     extraResetModels: configFile.extraResetModels,
-    roles: configFile.roles
+    roles: configFile.roles,
   });
   const managedSession = SessionManager(
     app,
@@ -34,7 +35,7 @@ const TestSuite = app => {
     resetDBAndGetSession,
     seedDB,
     fakers,
-    addRoleToUser: managedSession.addRoleToUser
+    addRoleToUser: managedSession.addRoleToUser,
   };
 
   function resetDBAndGetSession(props) {
@@ -42,7 +43,7 @@ const TestSuite = app => {
   }
 
   function seedDB(settings) {
-    return Promise.map(settings, setting => seed(setting));
+    return Promise.map(settings, (setting) => seed(setting));
   }
 
   function seed({ model, props = {}, count = 1 }) {
@@ -56,11 +57,14 @@ const TestSuite = app => {
     const times = [...Array(count)];
 
     return modelClass
-      .create(times.map(() => faker(props)), { isFromNodeJS: true })
-      .then(instances => instances.sort((a, b) => a.id - b.id))
-      .then(instances =>
+      .create(
+        times.map(() => faker(props)),
+        { isFromNodeJS: true }
+      )
+      .then((instances) => instances.sort((a, b) => a.id - b.id))
+      .then((instances) =>
         model === configFile.userModel && configFile.roles
-          ? Promise.map(instances, instance =>
+          ? Promise.map(instances, (instance) =>
               managedSession.addRoleToUser(
                 instance.id,
                 props.role || configFile.roles[0]
@@ -68,10 +72,6 @@ const TestSuite = app => {
             ).then(() => instances)
           : Promise.resolve(instances)
       );
-  }
-
-  function camelize(str) {
-    return str.charAt(0).toLowerCase() + str.substr(1, str.length);
   }
 };
 
